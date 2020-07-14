@@ -1,0 +1,1849 @@
+swagger: '2.0'
+info:
+  version: '0.1'
+  title: MCHN API
+  description: The MCHN API provides the ability to access, modify and delete information throughout all of the components of the machine ( Commerce, Content, Shipping).
+    <br><br>The MCHN API Is organized around REST principles with predictable endpoints, JSON-encoded responses, standard HTTP response codes, authentication and verbs.
+    <br><br> Please check your MCHN account's dashboard to access your test and public keys.
+    <br><br> When accessing a plural resource e.g. /ORDERS/ each Order's _self property links to an endpoint to get or modify itself.
+  license:
+    name: "MIT"
+    url: https://github.com/MyPassionMedia/the-machine/README.md
+  contact:
+    name: Ammar Haq
+    email: ammarh@mpmbrands.com
+host: ammar.hinzie.com
+basePath: /api/v1
+schemes:
+- https
+consumes: # affects POST PUT PATCH
+- application/json
+produces:
+- application/json
+
+    
+
+securityDefinitions:
+    APIKeyHeader:
+      type: apiKey
+      in: header
+      name: X-API-KEY
+      description: <br>The MCHN API uses API keys to authenticate requests. You can view and manage your API keys in the MCHN's dashboard.
+        
+        <br><br>Authentication is performed via passing the API Key in the X-API-KEY header. All API requests are made over HTTPS. 
+        API requests without authentication and made via HTTP will fail.
+security:
+  - APIKeyHeader: []
+paths:
+
+  /orders:
+    get:
+      description: "Retrieve a list of orders from the MCHN site."
+      parameters:
+      -
+        name: "ids"
+        in: "query"
+        description: "Restrict results to orders with the following IDs"
+        type: "array"
+        items:
+          type: "integer"
+        collectionFormat: "csv" # /orders?ids=42,51,23
+        
+      -
+        name: "offset"
+        in: "query"
+        description: "Specify the offset of the records to return"
+        required: false
+        type: "integer"
+        format: "int32" # /orders?offset=2432543
+
+      -
+        name: "since_date"
+        in: "query"
+        description: "Restrict results to orders after the specified date "
+        required: false
+        type: "string" # /orders?since_date=2020-06-28 16:06:26
+        
+      -
+        name: "until_date"
+        in: "query"
+        description: "Restrict results to orders before the specified date "
+        required: false
+        type: "string" # /orders?until_date=2020-06-28 16:06:26
+
+      -
+        name: "exids"
+        in: "query"
+        description: "Restrict results to orders without the following IDs"
+        type: "array"
+        items:
+          type: "integer"
+        collectionFormat: "csv" # /orders?exids=42,51,23
+      -
+        name: "limit"
+        in: "query"
+        description: "maximum number of orders to return"
+        required: true
+        type: "integer"
+        format: "int32" # /orders/?limit=42
+        
+      -
+        name: "fields"
+        in: "query"
+        description: "Restrict results to orders with the following fields"
+        type: "array"
+        items:
+          type: "string"
+        collectionFormat: "csv" # /orders?fields=id
+
+      -
+        name: "hasFields"
+        in: "query"
+        description: "Only get the orders which have the following fields"
+        type: "array"
+        items:
+          type: "string"
+        collectionFormat: "csv" # /orders?hasFields=id
+        
+      -
+        name: "If-None_Match"
+        in: "header"
+        $ref: "#/definitions/If-None_Match"
+
+      responses:
+        "200":
+          description: Orders Response
+          schema:
+              type: object
+              properties:
+                metadata:
+                  $ref: "#/definitions/Metadata"
+                orders:
+                  type: array
+                  items:
+                    $ref: "#/definitions/Order"
+                  example:
+                    {
+                      "metadata": {
+                        "limit": 5,
+                        "offset": 5,
+                        "previousOffset": 0,
+                        "nextOffset": 6,
+                        "pageCount": 1,
+                        "totalCount": 10
+                      },
+                      "orders": [
+                        {
+                          "id": 123,
+                          "_self": "site.mchn.io/order/123/",
+                        },
+                        {
+                          "id" : 124,
+                          "_self" : "site.mchn.io/order/124"
+                        }
+                      ]
+                    }
+          
+                    
+        "400":
+          description: "Bad request"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+        "401":
+          description: "Unauthorized request"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+        "404":
+          description: "Request not found"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+
+  /orders/{id}:
+    get:
+      description: "Retrieves a order based on a single ID if the account exists."
+      produces: 
+        - "application/json"
+      parameters:
+        -
+          name: "id"
+          in: "path"
+          description: "ID of the order to fetch"
+          required: true
+          type: "integer"
+          format: "int64"
+        -
+          name: "If-None_Match"
+          in: "header"
+          $ref: "#/definitions/If-None_Match"
+          
+          
+      responses:
+        "200":
+          description: "Single Order response"
+          schema:
+            $ref: "#/definitions/Order"
+            example:
+              {
+                id: 123, 
+                itemID: 32, 
+                userID: 1,
+                priceGross: 42, 
+                priceNet: 23, 
+                currencyCountryCode: 'CA', 
+                purchaseURL: 'tru.earth',
+                cartID: 32
+              }
+        "400":
+          description: "Bad request"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+        "401":
+          description: "Unauthorized request"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+        "404":
+          description: "Request not found"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+
+  /orders/{id}/shipments:
+    get:
+      description: "Retrieves all shipment records associated with a order."
+      produces: 
+        - "application/json"
+      parameters:
+      -
+        name: "id"
+        in: "path"
+        description: "ID of the order who's shipments to fetch"
+        required: true
+        type: "integer"
+        format: "int64"
+        
+      -
+        name: "statusCode"
+        in: "query"
+        description: "Restrict results to shipments with the specified status code."
+        type: "array"
+        items:
+          type: "integer"
+        collectionFormat: "csv" # /shipments?statusCode=2,1,
+        
+      -
+        name: "sent_since_date"
+        in: "query"
+        description: "Restrict results to shipments sent after the specified date "
+        required: false
+        type: "string" # /shipments?sent_since_date=2020-06-28 16:06:26
+        
+      -
+        name: "sent_until_date"
+        in: "query"
+        description: "Restrict results to shipments sent before the specified date "
+        required: false
+        type: "string" # /shipments?sent_until_date=2020-06-28 16:06:26
+
+      -
+        name: "delivered_since_date"
+        in: "query"
+        description: "Restrict results to shipments delivered after the specified date "
+        required: false
+        type: "string" # /shipments?delivered_since_date=2020-06-28 16:06:26
+        
+      -
+        name: "delivered_until_date"
+        in: "query"
+        description: "Restrict results to shipments delivered before the specified date "
+        required: false
+        type: "string" # /shipments?delivered_until_date=2020-06-28 16:06:26
+
+      -
+        name: "If-None_Match"
+        in: "header"
+        $ref: "#/definitions/If-None_Match"
+          
+      responses:
+        "200":
+          description: "Shipments response"
+          schema:
+              type: object
+              properties:
+                metadata:
+                  $ref: "#/definitions/Metadata"
+                orders:
+                  type: array
+                  items:
+                    $ref: "#/definitions/Shipment"
+                  example:
+                    {
+                      "metadata": {
+                        "limit": 5,
+                        "offset": 5,
+                        "previousOffset": 0,
+                        "nextOffset": 6,
+                        "pageCount": 1,
+                        "totalCount": 10
+                      },
+                      "orders": [
+                        {
+                          "id": 123,
+                          "_self": "site.mchn.io/order/123/",
+                        },
+                        {
+                          "id" : 124,
+                          "_self" : "site.mchn.io/order/124"
+                        }
+                      ]
+                    }
+        "400":
+          description: "Bad request"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+        "401":
+          description: "Unauthorized request"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+        "404":
+          description: "Request not found"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+
+  /shipments:
+    get:
+      description: "Retrieve a list of shipments from the MCHN site."
+      parameters:
+      -
+        name: "ids"
+        in: "query"
+        description: "Restrict results to shipments with the following IDs"
+        type: "array"
+        items:
+          type: "integer"
+        collectionFormat: "csv" # /shipments?ids=42,51,23
+        
+      -
+        name: "orderids"
+        in: "query"
+        description: "Restrict results to shipments with the following Order IDs"
+        type: "array"
+        items:
+          type: "integer"
+        collectionFormat: "csv" # /shipments?orderids=42,51,23
+        
+      -
+        name: "shipmentids"
+        in: "query"
+        description: "Restrict results to shipments with the following shipping address IDs"
+        type: "array"
+        items:
+          type: "integer"
+        collectionFormat: "csv" # /shipments?shipmentids=42,51,23
+        
+      -
+        name: "itemids"
+        in: "query"
+        description: "Restrict results to shipments with the following item IDs"
+        type: "array"
+        items:
+          type: "integer"
+        collectionFormat: "csv" # /shipments?itemids=42,51,23
+
+        
+      -
+        name: "offset"
+        in: "query"
+        description: "Specify the offset of the records to return"
+        required: false
+        type: "integer"
+        format: "int32" # /shipments?offset=2432543
+
+      -
+        name: "sent_since_date"
+        in: "query"
+        description: "Restrict results to shipments sent after the specified date "
+        required: false
+        type: "string" # /shipments?sent_since_date=2020-06-28 16:06:26
+        
+      -
+        name: "sent_until_date"
+        in: "query"
+        description: "Restrict results to shipments sent before the specified date "
+        required: false
+        type: "string" # /shipments?sent_until_date=2020-06-28 16:06:26
+
+      -
+        name: "delivered_since_date"
+        in: "query"
+        description: "Restrict results to shipments delivered after the specified date "
+        required: false
+        type: "string" # /shipments?delivered_since_date=2020-06-28 16:06:26
+        
+      -
+        name: "delivered_until_date"
+        in: "query"
+        description: "Restrict results to shipments delivered before the specified date "
+        required: false
+        type: "string" # /shipments?delivered_until_date=2020-06-28 16:06:26
+
+      -
+        name: "statusCode"
+        in: "query"
+        description: "Restrict results to shipments with the specified status codes"
+        type: "array"
+        items:
+          type: "integer"
+        collectionFormat: "csv" # /shipments?statusCode=0,1,2
+
+      -
+        name: "exids"
+        in: "query"
+        description: "Restrict results to shipments without the following IDs"
+        type: "array"
+        items:
+          type: "integer"
+        collectionFormat: "csv" # /shipments?exids=42,51,23
+      -
+        name: "limit"
+        in: "query"
+        description: "maximum number of shipments to return"
+        required: false
+        type: "integer"
+        format: "int32" # /shipments/?limit=42
+        
+      -
+        name: "fields"
+        in: "query"
+        description: "Restrict results to shipments with the following fields"
+        type: "array"
+        items:
+          type: "string"
+        collectionFormat: "csv" # /shipments?fields=id
+
+      -
+        name: "hasFields"
+        in: "query"
+        description: "Only get the shipments which have the following fields"
+        type: "array"
+        items:
+          type: "string"
+        collectionFormat: "csv" # /shipments?hasFields=id
+
+      -
+        name: "If-None_Match"
+        in: "header"
+        $ref: "#/definitions/If-None_Match"
+
+
+      responses:
+        "200":
+          description: "Successful Shipments Response"
+          schema:
+            type: object
+            properties:
+              metadata:
+                $ref: "#/definitions/Metadata"
+              orders:
+                type: array
+                items:
+                  $ref: "#/definitions/Shipment"
+                example:
+                  {
+                    "metadata": {
+                      "limit": 5,
+                      "offset": 5,
+                      "previousOffset": 0,
+                      "nextOffset": 6,
+                      "pageCount": 1,
+                      "totalCount": 10
+                    },
+                    "orders": [
+                      {
+                        "id": 123,
+                        "_self": "site.mchn.io/shipment/123/",
+                      },
+                      {
+                        "id" : 124,
+                        "_self" : "site.mchn.io/shipment/124"
+                      }
+                    ]
+                  }
+        "400":
+          description: "Bad request"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+        "401":
+          description: "Unauthorized request"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+        "404":
+          description: "Request not found"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+
+  /shipments/{id}:
+    get:
+      description: "Retrieves all information regarding a specific shipment based on the ID provided."
+      produces: 
+        - "application/json"
+      parameters:
+        -
+          name: "id"
+          in: "path"
+          description: "ID of the shipment who's information we fetch"
+          required: true
+          type: "integer"
+          format: "int64"
+          
+        -
+          name: "If-None_Match"
+          in: "header"
+          $ref: "#/definitions/If-None_Match"
+          
+      responses:
+        "200":
+          description: " Shipment response"
+          schema:
+            type: object
+            $ref: "#/definitions/Shipment"
+            example:
+              {
+                id: 123,
+                orderID: 33,
+                dateSent: '2015-02-01 20:08:27', 
+                status: 1
+              }
+        "400":
+          description: "Bad request"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+        "401":
+          description: "Unauthorized request"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+        "404":
+          description: "Request not found"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+
+  /products:
+    get:
+      description: "Retrieve a list of products from the MCHN site."
+      parameters:
+      -
+        name: "ids"
+        in: "query"
+        description: "Restrict results to products with the following IDs"
+        type: "array"
+        items:
+          type: "integer"
+        collectionFormat: "csv" # /products?ids=42,51,23
+        
+      -
+        name: "offset"
+        in: "query"
+        description: "Specify the offset of the records to return"
+        required: false
+        type: "integer"
+        format: "int32" # /products?offset=2432543
+
+      -
+        name: "since_date"
+        in: "query"
+        description: "Restrict results to products after the specified date "
+        required: false
+        type: "string" # /products?since_date=2020-06-28 16:06:26
+        
+      -
+        name: "until_date"
+        in: "query"
+        description: "Restrict results to products before the specified date "
+        required: false
+        type: "string" # /products?until_date=2020-06-28 16:06:26
+
+      -
+        name: "exids"
+        in: "query"
+        description: "Restrict results to products without the following IDs"
+        type: "array"
+        items:
+          type: "integer"
+        collectionFormat: "csv" # /products?exids=42,51,23
+      -
+        name: "limit"
+        in: "query"
+        description: "maximum number of products to return"
+        required: false
+        type: "integer"
+        format: "int32" # /products/?limit=42
+        
+      -
+        name: "fields"
+        in: "query"
+        description: "Restrict results to products with the following fields"
+        type: "array"
+        items:
+          type: "string"
+        collectionFormat: "csv" # /products?fields=id
+
+      -
+        name: "hasFields"
+        in: "query"
+        description: "Only get the products which have the following fields"
+        type: "array"
+        items:
+          type: "string"
+        collectionFormat: "csv" # /products?hasFields=id
+
+      -
+        name: "If-None_Match"
+        in: "header"
+        $ref: "#/definitions/If-None_Match"
+
+      responses:
+        "200":
+          description: Successful Response
+          schema:
+            type: object
+            properties:
+              metadata:
+                $ref: "#/definitions/Metadata"
+              orders:
+                type: array
+                items:
+                  $ref: "#/definitions/Product"
+                example:
+                  {
+                    "metadata": {
+                      "limit": 5,
+                      "offset": 5,
+                      "previousOffset": 0,
+                      "nextOffset": 6,
+                      "pageCount": 1,
+                      "totalCount": 10
+                    },
+                    "orders": [
+                      {
+                        "id": 123,
+                        "_self": "site.mchn.io/product/123",
+                      },
+                      {
+                        "id" : 124,
+                        "_self" : "site.mchn.io/product/124"
+                      }
+                    ]
+                  }
+        "400":
+          description: "Bad request"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+        "401":
+          description: "Unauthorized request"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+        "404":
+          description: "Request not found"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+
+
+  /products/{id}:
+    get:
+      description: "Retrieves a product based on a single ID if it exists."
+      produces: 
+        - "application/json"
+      parameters:
+        -
+          name: "id"
+          in: "path"
+          description: "ID of the product to fetch"
+          required: true
+          type: "integer"
+          format: "int64"
+      responses:
+        "200":
+          description: "Successful Response"
+          schema:
+            $ref: "#/definitions/Product"
+            example:
+                id: 124
+                
+        "400":
+          description: "Bad request"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+
+        "401":
+          description: "Unauthorized request"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+            
+        "404":
+          description: "Request not found"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+
+    
+            
+  /products/{id}/productprices/{countryCode}: 
+    get:
+      description: "Retrieves the current, applicable ( either regular or sales) price of a product."
+      produces: 
+        - "application/json"
+      parameters:
+        -
+          name: "id"
+          in: "path"
+          description: "ID of the product who's price to fetch"
+          required: true
+          type: "integer"
+          format: "int64"
+          
+        -
+          name: "countryCode"
+          in: "path"
+          description: "The country code of the product's price to fetch"
+          required: true
+          type: "string"
+          
+        -
+          name: "type"
+          in: "query"
+          description: "The type of price to fetch if 1 regular price, if 2 get sales price. Null returned if DNE."
+          required: true
+          type: "string"
+  
+        -
+          name: "If-None_Match"
+          in: "header"
+          $ref: "#/definitions/If-None_Match"
+
+      responses:
+        "200":
+          description: "Successful Response"
+          schema:
+            $ref: "#/definitions/Price"
+            example:
+              { id: 23, itemID: 32, currencyCountryCode: 'CA', price: 23}
+      
+        "400":
+          description: "Bad request"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+            
+        "401":
+          description: "Unauthorized request, invalid or missing API Key"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+
+        "404":
+          description: "The requested resource was not found or does not exist"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+            
+            
+  /products/count:
+    get:
+      description: "Retrieves a count of the number of products saved on the MCHN site."
+      produces:
+        - "application/json"
+      responses:
+        "200":
+          description: "Number of products response"
+          schema:
+            type: object 
+            properties:
+              count:
+                type: integer
+            example:
+              {'count' : 4}
+        "400":
+          description: "Bad request"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+            
+            
+  /prices/{itemID}:
+    get:
+      description: "Retrieves a list of all sales + regular prices for the product."
+      produces:
+       - "application/json"
+      parameters:
+      -
+        name: "itemID"
+        in: "path"
+        description: "ID of the item who's prices to fetch"
+        required: true
+        type: "integer"
+        format: "int64"
+      
+      -
+        name: "offset"
+        in: "query"
+        description: "Specify the offset of the records to return "
+        required: false
+        type: "integer"
+        format: "int32" # /prices/23/?offset=2432543
+  
+      -
+        name: "since_date"
+        in: "query"
+        description: "Restrict results to those after the specified date "
+        required: false
+        type: "string" # /prices/23/?since_date=2020-06-28 16:06:26
+        
+      -
+        name: "until_date"
+        in: "query"
+        description: "Restrict results to those before the specified date "
+        required: false
+        type: "string" # /prices/23/?until_date=2020-06-28 16:06:26
+
+      -
+        name: "exids"
+        in: "query"
+        description: "Restrict results to prices without the following IDs"
+        type: "array"
+        items:
+          type: "integer"
+        collectionFormat: "csv" # /prices/23/?exids=42,51,23
+      -
+        name: "limit"
+        in: "query"
+        description: "maximum number of prices to return"
+        required: false
+        type: "integer"
+        format: "int32" # /prices/23/?limit=42
+        
+      -
+        name: "fields"
+        in: "query"
+        description: "Only get the following fields from the prices"
+        type: "array"
+        items:
+          type: "string"
+        collectionFormat: "csv" # /prices/23?fields=firstname,lastname,username
+        
+      -
+        name: "hasFields"
+        in: "query"
+        description: "Only get the users who have the following fields"
+        type: "array"
+        items:
+          type: "string"
+        collectionFormat: "csv" # /prices/23?hasFields=firstname,lastname,username
+        
+      -
+        name: "countryCodes"
+        in: "query"
+        description: "Only get prices from the following countries"
+        type: "array"
+        items:
+          type: "string"
+        collectionFormat: "csv" # /prices/23?countryCodes=US,CA
+        
+      -
+        name: "If-None_Match"
+        in: "header"
+        $ref: "#/definitions/If-None_Match"
+        
+        
+      responses:
+        "200":
+          description: "Product Prices response"
+          schema:
+            type: object
+            properties:
+              metadata:
+                $ref: "#/definitions/Metadata"
+              orders:
+                type: array
+                items:
+                  $ref: "#/definitions/Price"
+                example:
+                  {
+                    "metadata": {
+                      "limit": 5,
+                      "offset": 5,
+                      "previousOffset": 0,
+                      "nextOffset": 6,
+                      "pageCount": 1,
+                      "totalCount": 10
+                    },
+                    "orders": [
+                      {
+                        "id": 123,
+                        "_self": "site.mchn.io/price/123/",
+                      },
+                      {
+                        "id" : 124,
+                        "_self" : "site.mchn.io/price/124"
+                      }
+                    ]
+                  }
+          
+        "400":
+          description: "Bad request"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+
+    delete:
+      description: "Delete all prices for the specified product if they exist"
+      produces:
+        - "application/json"
+      parameters:
+        -
+          name: "itemID"
+          in: "path"
+          description: "ID of the product's prices to delete"
+          required: true
+          type: "integer"
+          format: "int64"
+      responses:
+        "204":
+          description: "Product's prices deleted succesfully"
+        "400":
+          description: "Invalid Product ID"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+        "404":
+          description: "Product ID not found"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+
+  /prices/{itemID}/sales:
+    get:
+      description: "Retrieves a list of all sales prices for the product."
+      produces:
+       - "application/json"
+      parameters:
+      -
+        name: "itemID"
+        in: "path"
+        description: "ID of the item who's prices to fetch"
+        required: true
+        type: "integer"
+        format: "int64"
+      
+      -
+        name: "offset"
+        in: "query"
+        description: "Specify the offset of the records to return "
+        required: false
+        type: "integer"
+        format: "int32" # /prices/23/sales/?offset=2432543
+  
+      -
+        name: "since_date"
+        in: "query"
+        description: "Restrict results to those after the specified date "
+        required: false
+        type: "string" # /prices/23/sales/?since_date=2020-06-28 16:06:26
+        
+      -
+        name: "until_date"
+        in: "query"
+        description: "Restrict results to those before the specified date "
+        required: false
+        type: "string" # /prices/23/sales/?until_date=2020-06-28 16:06:26
+
+      -
+        name: "exids"
+        in: "query"
+        description: "Restrict results to prices without the following IDs"
+        type: "array"
+        items:
+          type: "integer"
+        collectionFormat: "csv" # /prices/23/sales/?exids=42,51,23
+      -
+        name: "limit"
+        in: "query"
+        description: "maximum number of prices to return"
+        required: false
+        type: "integer"
+        format: "int32" # /prices/23/sales/?limit=42
+        
+      -
+        name: "fields"
+        in: "query"
+        description: "Only get the following fields from the prices"
+        type: "array"
+        items:
+          type: "string"
+        collectionFormat: "csv" # /prices/23/sales/?fields=firstname,lastname,username
+        
+      -
+        name: "hasFields"
+        in: "query"
+        description: "Only get the users who have the following fields"
+        type: "array"
+        items:
+          type: "string"
+        collectionFormat: "csv" # /prices/23/sales/?hasFields=firstname,lastname,username
+        
+      -
+        name: "countryCodes"
+        in: "query"
+        description: "Only get prices from the following countries"
+        type: "array"
+        items:
+          type: "string"
+        collectionFormat: "csv" # /prices/23/sales/?countryCodes=US,CA
+      -
+        name: "If-None_Match"
+        in: "header"
+        $ref: "#/definitions/If-None_Match"
+        
+        
+      responses:
+        "200":
+          description: "Product Sales Price response"
+          schema:
+            type: object
+            properties:
+              metadata:
+                $ref: "#/definitions/Metadata"
+              orders:
+                type: array
+                items:
+                  $ref: "#/definitions/Shipment"
+                example:
+                  {
+                    "metadata": {
+                      "limit": 5,
+                      "offset": 5,
+                      "previousOffset": 0,
+                      "nextOffset": 6,
+                      "pageCount": 1,
+                      "totalCount": 10
+                    },
+                    "orders": [
+                      {
+                        "id": 123,
+                        "_self": "site.mchn.io/order/123/",
+                      },
+                      {
+                        "id" : 124,
+                        "_self" : "site.mchn.io/order/124"
+                      }
+                    ]
+                  }
+        "400":
+          description: "Bad request"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+
+    delete:
+      description: "Delete all sale prices for the specified product if they exist"
+      produces:
+        - "application/json"
+      parameters:
+        -
+          name: "itemID"
+          in: "path"
+          description: "ID of the product's sale prices to delete"
+          required: true
+          type: "integer"
+          format: "int64"
+      responses:
+        "204":
+          description: "Product's sale prices deleted succesfully"
+        "400":
+          description: "Invalid Product ID"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+        "404":
+          description: "Product ID not found"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+
+  /prices/{itemID}/regular:
+    get:
+      description: "Retrieves a list of all regular prices for the product."
+      produces:
+       - "application/json"
+      parameters:
+      -
+        name: "itemID"
+        in: "path"
+        description: "ID of the item who's prices to fetch"
+        required: true
+        type: "integer"
+        format: "int64"
+      
+      -
+        name: "offset"
+        in: "query"
+        description: "Specify the offset of the records to return "
+        required: false
+        type: "integer"
+        format: "int32" # /prices/23/regular/?offset=2432543
+  
+      -
+        name: "since_date"
+        in: "query"
+        description: "Restrict results to those after the specified date "
+        required: false
+        type: "string" # /prices/23/regular?since_date=2020-06-28 16:06:26
+        
+      -
+        name: "until_date"
+        in: "query"
+        description: "Restrict results to those before the specified date "
+        required: false
+        type: "string" # /prices/23/regular?until_date=2020-06-28 16:06:26
+
+      -
+        name: "exids"
+        in: "query"
+        description: "Restrict results to prices without the following IDs"
+        type: "array"
+        items:
+          type: "integer"
+        collectionFormat: "csv" # /prices/23/regular?exids=42,51,23
+      -
+        name: "limit"
+        in: "query"
+        description: "maximum number of prices to return"
+        required: false
+        type: "integer"
+        format: "int32" # /prices/23/regular?limit=42
+        
+      -
+        name: "fields"
+        in: "query"
+        description: "Only get the following fields from the prices"
+        type: "array"
+        items:
+          type: "string"
+        collectionFormat: "csv" # /prices/23/regular?fields=firstname,lastname,username
+        
+      -
+        name: "hasFields"
+        in: "query"
+        description: "Only get the users who have the following fields"
+        type: "array"
+        items:
+          type: "string"
+        collectionFormat: "csv" # /prices/23/regular/?hasFields=firstname,lastname,username
+        
+      -
+        name: "countryCodes"
+        in: "query"
+        description: "Only get prices from the following countries"
+        type: "array"
+        items:
+          type: "string"
+        collectionFormat: "csv" # /prices/23/regular?countryCodes=US,CA
+        
+      responses:
+        "200":
+          description: "Product Regular Price response"
+          schema:
+            type : "array"
+            items:
+              $ref: "#/definitions/Price"
+        "400":
+          description: "Bad request"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+
+
+    delete:
+      description: "Delete all regular prices for the specified product if they exist"
+      produces:
+        - "application/json"
+      parameters:
+        -
+          name: "itemID"
+          in: "path"
+          description: "ID of the product's regular ale prices to delete"
+          required: true
+          type: "integer"
+          format: "int64"
+      responses:
+        "204":
+          description: "Product's regular prices deleted succesfully"
+        "400":
+          description: "Invalid Product ID"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+        "404":
+          description: "Product ID not found"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+
+
+  /shippingprices/{itemID}:
+    get:
+      description: "Retrieves a list of all shipping prices for the product."
+      produces:
+       - "application/json"
+      parameters:
+      -
+        name: "itemID"
+        in: "path"
+        description: "ID of the item who's shipping prices to fetch"
+        required: true
+        type: "integer"
+        format: "int64"
+      
+      -
+        name: "offset"
+        in: "query"
+        description: "Specify the offset of the records to return "
+        required: false
+        type: "integer"
+        format: "int32" # /shippingprices/23/?offset=2432543
+  
+      -
+        name: "since_date"
+        in: "query"
+        description: "Restrict results to those after the specified date "
+        required: false
+        type: "string" # /shippingprices/23/?since_date=2020-06-28 16:06:26
+        
+      -
+        name: "until_date"
+        in: "query"
+        description: "Restrict results to those before the specified date "
+        required: false
+        type: "string" # /shippingprices/23/?until_date=2020-06-28 16:06:26
+
+      -
+        name: "exids"
+        in: "query"
+        description: "Restrict results to shipping prices without the following IDs"
+        type: "array"
+        items:
+          type: "integer"
+        collectionFormat: "csv" # /shippingprices/23/?exids=42,51,23
+      -
+        name: "limit"
+        in: "query"
+        description: "maximum number of shippingprices to return"
+        required: false
+        type: "integer"
+        format: "int32" # /shippingprices/23/?limit=42
+        
+      -
+        name: "fields"
+        in: "query"
+        description: "Only get the following fields from the prices"
+        type: "array"
+        items:
+          type: "string"
+        collectionFormat: "csv" # /shippingprices/23?fields=firstname,lastname,username
+        
+      -
+        name: "hasFields"
+        in: "query"
+        description: "Only get the users who have the following fields"
+        type: "array"
+        items:
+          type: "string"
+        collectionFormat: "csv" # /shippingprices/23?hasFields=firstname,lastname,username
+        
+      -
+        name: "countryCodes"
+        in: "query"
+        description: "Only get shipping prices of items in the following countries currency"
+        type: "array"
+        items:
+          type: "string"
+        collectionFormat: "csv" # /shippingprices/23?countryCodes=US,CA
+        
+      -
+        name: "destinationCountryCodes"
+        in: "query"
+        description: "Only get shipping prices of items going to the following countries"
+        type: "array"
+        items:
+          type: "string"
+        collectionFormat: "csv" # /shippingprices/23?destinationCountryCodes=US,CA
+
+      responses:
+        "200":
+          description: "Product Shipping Prices response"
+          schema:
+            type : "array"
+            items:
+              $ref: "#/definitions/Shipping Price"
+            example:
+              [
+                {
+                  _self: 'site.mchn.io/shippingprices/123/', 
+                  id: 123
+                },
+                {
+                  _self: 'site.mchn.io/shippingprices/124/', 
+                  id: 124
+                }
+              ]
+              
+        "400":
+          description: "Bad request"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+
+    delete:
+      description: "Delete all shipping prices for the specified product if they exist"
+      produces:
+        - "application/json"
+      parameters:
+        -
+          name: "itemID"
+          in: "path"
+          description: "ID of the product's shipping prices to delete"
+          required: true
+          type: "integer"
+          format: "int64"
+      responses:
+        "204":
+          description: "Product's shipping prices deleted succesfully"
+        "400":
+          description: "Invalid Product ID"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+        "404":
+          description: "Product ID not found"
+          schema:
+            $ref: "#/definitions/ErrorModel"
+
+
+definitions:
+  Address:
+    title: Address
+    type: object
+    properties: 
+      _self:
+        type: string
+      id:
+        type: integer
+        format: int32
+      name:
+        type: string
+      address:
+        type: string
+      city:
+        type: string
+      provinceCode:
+        type: string
+      countryCode:
+        type: string
+      postalCode:
+        type: string
+      date:
+        type: string
+      dateChanged:
+        type: string
+      deleted:
+        type: integer
+        format: int32
+    required:
+      - id
+      
+  Account:
+    title: Account
+    type: object
+    properties:
+      _self:
+        type: string
+      id:
+        type: integer
+        format: int32       
+      firstname:
+        type: string
+      lastname:
+        type: string   
+      email:
+        type: string
+      addresses:
+        type: array
+        items:
+          $ref: '#/definitions/Address'
+    required:
+      - id
+      
+  Metadata:
+    title: Meta Data for requests
+    type: object
+    properties:
+      limit:
+        type: integer
+        format: int32
+      offset:
+        type: integer
+        format: int32
+      previousOffset:
+        type: integer
+        format: int32
+      nextOffset:
+        type: integer
+        format: int32
+      pageCount:
+        type: integer
+        format: int32
+      totalCount:
+        type: integer
+        format: int32
+      ETag:
+        type: string
+      lastModified:
+        type: string
+      
+  
+  Exit Intent:
+    title: Exit Intent
+    type : object
+    properties: 
+      _self:
+        type: string
+      id: 
+        type: integer
+        format: int32
+      author:
+        type: object
+        $ref: '#/definitions/Account'
+      enabled:
+        type: boolean
+      title:
+        type: string
+      summary:
+        type: string
+      text:   # for basic elements?
+        type: string
+      dateCreated:
+        type: string
+      datePublished:
+        type: string
+
+  Welcome Mat:
+    title: Welcome Mat
+    type : object
+    properties: 
+      _self:
+        type: string
+      id: 
+        type: integer
+        format: int32
+      author:
+        type: object
+        $ref: '#/definitions/Account'
+      title:
+        type: string
+      summary:
+        type: string
+      enabled:
+        type: boolean
+      text:   # for basic elements?
+        type: string
+      dateCreated:
+        type: string
+      datePublished:
+        type: string
+        
+  Product Category:
+    title: Product Category
+    type: object
+    properties:
+      _self:
+        type: string
+      id:
+        type: integer
+        format: int32
+      enabled:
+        type: boolean
+      author:
+        type: object
+        $ref: '#/definitions/Account'
+      title:
+        type: string
+      marketingTitle:
+        type: string
+      summary:
+        type: string
+      marketingSummary:
+        type : string
+      datePublished:
+        type: string
+      dateChanged:
+        type: string
+      dateCreated:
+        type: string
+      isVisible: # publicly listed property true
+        type: boolean
+      subCategories:
+        type: array
+        items:
+          $ref: "#/definitions/Product Category"
+    required:
+      - id
+
+  Article Category:
+    title: Article Category
+    type : object
+    properties: 
+      _self:
+        type: string
+      id: 
+        type: integer
+        format: int32
+      author:
+        type: object
+        $ref: '#/definitions/Account'
+      title:
+        type: string
+      dateCreated:
+        type: string
+      datePublished:
+        type: string
+      text:
+        type: string
+      subCategories: #expand query here
+        type: array
+        items:
+          $ref: '#/definitions/Article Category'
+          
+          
+  Article:
+    title: Article
+    type: object
+    properties:
+      _self:
+        type: string
+      id:
+        type: integer
+        format: int32
+      author:
+        type: object
+        $ref: '#/definitions/Account'
+      title:
+        type: string
+      altTitle:
+        type: string
+      categories:
+        type: array
+        items: # expand query 
+          $ref: "#/definitions/Article Category"
+      marketingTitle:
+        type: string
+      url:
+        type: string
+      summary:
+        type: string
+      marketingSummary:
+        type : string
+      tags:
+        type: string
+      text:
+        type: string
+      datePublished:
+        type: string
+      dateChanged:
+        type: string
+      dateCreated:
+        type: string
+      isVisible: # publicly listed property true
+        type: boolean
+      isSearchable: # is searchable property true
+        type: boolean
+      hasFullWidth: # site's full width is true
+        type: boolean
+      hasFooter: # site footer is true
+        type: boolean
+      hasHeader: # site header is true
+        type: boolean
+      hasNavigation: # site navigation is true
+        type : boolean
+      featuredImage:
+        type: object
+        $ref: "#/definitions/Image"
+    required:
+      - id
+        
+  Video:
+    title: Video
+    type: object
+    properties:
+      _self:
+        type: string
+      id:
+        type: integer
+        format: int32
+      title:
+        type: string
+      credit:
+        type: string
+      description:
+        type: string
+      URL:
+        type: string
+
+  Image:
+    title: Image
+    type: object
+    properties:
+      _self:
+        type: string
+      id:
+        type: integer
+        format: int32
+      title:
+        type: string
+      credit:
+        type: string
+      description:
+        type: string
+      URL:
+        type: string
+        
+  Product:
+    title: Product
+    type: object
+    properties:
+      _self:
+        type: string
+      id:
+        type: integer
+        format: int32
+      parentProductID:
+        type: integer
+        format: int32
+      variants:
+        type: array
+        items:
+          $ref: '#/definitions/Product'
+          
+      # Price info, is retrieved seperately     
+
+      # Product info below
+      title:
+        type: string
+      shortTitle:
+        type: string
+      url:
+        type: string
+      brand:
+        type: string
+      summary:
+        type: string
+      socialProof:
+        type: string
+      returnPolicy:
+        type: string
+      details:
+        type: string
+      description:
+        type: string
+      categories:
+        type: array
+        items:
+          $ref: '#/definitions/Product Category'
+      # Properties info below
+      atomic:
+        type: boolean
+      publiclyListed:
+        type: boolean
+      height:
+        type: integer
+        format: int32
+      width:
+        type: integer
+        format: int32
+      length:
+        type: integer
+        format: int32
+      weight:
+        type: integer
+        format: int32
+      SKU:
+        type: string
+      GTIN:
+        type: string
+      # Shipment info below
+      needsToBeShipped:
+        type: boolean
+      isShippedInOwnBox:
+        type: boolean
+      warehouseTitle:
+        type: string
+      warehouseLocation:
+        type: string
+      customsInfo:
+        type: string
+      # Subscription info
+      isSubscription:
+        type: boolean
+      numberShipmentsPerOrder:
+        type: integer
+        format: int32
+      autoRenewAfterCompletion:
+        type: boolean
+      autoRenewByMachine:
+        type: boolean
+      # Payment options info
+      numberOfPayments:
+        type: integer
+        format: int32
+      numberOfPaymentIntervals:
+        type: integer
+        format: int32
+      # If false it is postpaid
+      isPrepaid:
+        type: boolean
+      isPostpaid: 
+        type: boolean
+      #Images
+      images:
+        type: array
+        items:
+          $ref: "#/definitions/Image"  
+
+  Price:
+    title: Price
+    type: object
+    properties:
+      _self:
+        type: string
+      id:
+        type: integer
+        format: int32
+      itemID:
+        type: integer
+        format: int32
+      currencyCountryCode:
+        type: string
+      peggedCurrencyCountryCode:
+        type: string
+      price:
+        type : integer
+        format: int32
+      type:   # 1 = regular price, 0 = sales price
+        type: integer
+        format: int32        
+      dateStart:
+        type: string
+      dateEnd:
+        type: string
+        
+  Shipping Price:
+    title: Shipping Price
+    type: object
+    properties:
+      _self:
+        type: string
+      id:
+        type: integer
+        format: int32
+      itemID:
+        type: integer
+        format: int32
+      currencyCountryCode:
+        type: string
+      destinationCountryCode:
+        type: string
+      price: # this is shipping handling?
+        type : integer
+        format: int32
+      dateStart:
+        type: string
+      dateEnd:
+        type: string
+        
+  Order:
+    title: Order
+    type: object
+    properties:
+      _self:
+        type: string
+      id:
+        type: integer
+        format: int32
+      itemID:
+        type: integer
+        format: int32
+      userID:
+        type: integer
+        format: int32
+      priceGross:
+        type: integer
+        format: int32
+      priceNet:
+        type: integer
+        format: int32
+      currencyCountryCode:
+        type: string
+      purchaseURL:
+        type: string
+      cartID:
+        type: integer
+        format: int32     
+      isCompleted:
+        type: boolean 
+    required:
+      - id
+  
+  
+  Shipment:
+    title: Shipment
+    type: object
+    properties:
+      _self:
+        type: string
+      id:
+        type: integer
+        format: int32
+      orderID:
+        type: integer
+        format: int32
+      shippingAddressID:
+        type: integer
+        format: int32
+      dateSent:
+        type: string
+      dateDelivered:
+        type: string
+      status:
+        type: integer
+        format: int32
+      packagingCost:
+        type: integer
+      packagingCostCurrencyCountryCode:
+        type: integer
+      shippingCost:
+        type: integer
+      shippingCostCurrencyCountryCode:
+        type: integer
+    required:
+      - id
+  
+  ErrorModel:
+    title: Error Model
+    type: object
+    properties:
+      code: 
+        type: integer
+        format: int32
+      message:
+        type: string
+    required:
+      - code
+      - message
+      
+  X-Rate-Limit-Limit:
+    description: The number of allowed requests in the current period
+    type: integer
+  X-Rate-Limit-Remaining:
+    description: The number of remaining requests in the current period
+    type: integer
+  X-Rate-Limit-Reset:
+    description: The number of seconds left in the current period
+    type: integer
+    
+  If-None_Match:
+    description: A HTTP Response header used for GET requests, passed with a ETag to determine if the data has changed.
+    type: string
+    
+
+      
+

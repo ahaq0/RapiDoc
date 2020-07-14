@@ -1,8 +1,8 @@
 {
-  "name": "rapidoc",
-  "version": "8.1.1",
-  "description": "RapiDoc - Open API spec viewer with built in console",
-  "author": "Mrinmoy Majumdar <mrin9@yahoo.com>",
+  "name": "mchn",
+  "version": ".1",
+  "description": "MCHN API Documentaiton - View MCHN API documenation",
+  "author": "Ammar Haq <ammarhaq@mpmbrands.com>",
   "repository": {
     "type": "git",
     "url": "https://github.com/mrin9/RapiDoc.git"
